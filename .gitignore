@@ -45,11 +45,16 @@ output/
 
 # Data files
 *.csv
-*.json
-*.jsonl
-*.txt
+data/*.json
+data/*.jsonl
+data/*.txt
 data/
 datasets/
+
+# Keep important txt files
+!requirements.txt
+!examples/*.txt
+!*.md
 
 # IDE
 .vscode/
