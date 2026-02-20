@@ -6,8 +6,86 @@ This module provides functions for model inference and Gradio UI deployment.
 
 import torch
 import gradio as gr
+import re
 from typing import Optional, List, Tuple
 from src.data_preprocessing import create_prompt_template
+
+
+def is_medical_question(question: str) -> Tuple[bool, str]:
+    """
+    Check if a question is related to the medical/healthcare domain.
+    
+    Args:
+        question: User input question
+        
+    Returns:
+        Tuple of (is_medical, reason)
+    """
+    question_lower = question.lower().strip()
+    
+    # Medical keywords - comprehensive list
+    medical_keywords = [
+        # Body systems and anatomy
+        'heart', 'lung', 'liver', 'kidney', 'brain', 'blood', 'bone', 'muscle', 'nerve',
+        'stomach', 'intestine', 'pancreas', 'skin', 'eye', 'ear', 'throat', 'mouth',
+        'artery', 'vein', 'organ', 'cell', 'tissue', 'gland', 'hormone', 'enzyme',
+        'mitochondria', 'dna', 'gene', 'chromosome', 'protein', 'immune', 'lymph',
+        
+        # Medical terms and conditions
+        'disease', 'disorder', 'syndrome', 'condition', 'infection', 'inflammation',
+        'cancer', 'tumor', 'diabetes', 'hypertension', 'asthma', 'allergy', 'arthritis',
+        'pneumonia', 'bronchitis', 'stroke', 'seizure', 'fracture', 'wound', 'injury',
+        'pain', 'fever', 'cough', 'bleeding', 'swelling', 'rash', 'itch',
+        
+        # Medical procedures and treatments
+        'treatment', 'therapy', 'surgery', 'operation', 'procedure', 'diagnosis',
+        'medication', 'drug', 'medicine', 'antibiotic', 'vaccine', 'immunization',
+        'prescription', 'dose', 'side effect', 'symptom', 'sign', 'test', 'exam',
+        'screening', 'imaging', 'xray', 'x-ray', 'mri', 'ct scan', 'ultrasound',
+        
+        # Healthcare professionals and specialties
+        'doctor', 'physician', 'nurse', 'surgeon', 'therapist', 'patient', 'hospital',
+        'clinic', 'emergency', 'icu', 'pharmacy', 'medical', 'clinical', 'health',
+        'healthcare', 'medicine', 'anatomy', 'physiology', 'pathology', 'pharmacology',
+        
+        # Common medical questions
+        'what causes', 'what is', 'how does', 'why do', 'can you explain',
+        'what are the symptoms', 'what are side effects', 'how to treat', 'how to cure',
+    ]
+    
+    # Non-medical topics to explicitly reject
+    non_medical_topics = [
+        'politics', 'political', 'election', 'government', 'president', 'minister',
+        'religion', 'religious', 'god', 'allah', 'buddha', 'church', 'mosque', 'temple',
+        'math', 'mathematics', 'algebra', 'calculus', 'geometry', 'equation', 'solve',
+        'sports', 'football', 'basketball', 'soccer', 'cricket', 'game', 'team',
+        'cooking', 'recipe', 'cuisine', 'food', 'restaurant',
+        'programming', 'code', 'software', 'computer', 'python', 'java', 'javascript',
+        'history', 'historical', 'war', 'battle', 'civilization',
+        'geography', 'country', 'capital', 'continent', 'ocean',
+        'entertainment', 'movie', 'film', 'music', 'song', 'actor', 'celebrity',
+    ]
+    
+    # First check for non-medical topics
+    for topic in non_medical_topics:
+        if topic in question_lower:
+            # Exception: nutrition/diet can be medical
+            if 'diet' in question_lower or 'nutrition' in question_lower or 'vitamin' in question_lower:
+                continue
+            return False, f"This question appears to be about {topic}, which is outside my medical domain."
+    
+    # Check for medical keywords
+    for keyword in medical_keywords:
+        if keyword in question_lower:
+            return True, "Medical question detected"
+    
+    # If no clear medical keywords but also no clear non-medical topics
+    # Use length and structure heuristics
+    if len(question.split()) < 3:
+        return False, "Please ask a complete medical question."
+    
+    # Default to rejecting if uncertain
+    return False, "I can only answer questions related to medical and healthcare topics."
 
 
 def generate_medical_response(
@@ -18,7 +96,8 @@ def generate_medical_response(
     temperature: float = 0.7,
     top_p: float = 0.9,
     top_k: int = 50,
-    do_sample: bool = True
+    do_sample: bool = True,
+    enforce_domain: bool = True
 ) -> str:
     """
     Generate a medical response for a given question.
@@ -32,6 +111,7 @@ def generate_medical_response(
         top_p: Nucleus sampling parameter
         top_k: Top-k sampling parameter
         do_sample: Whether to use sampling
+        enforce_domain: Whether to enforce medical domain restrictions
         
     Returns:
         Generated medical response
@@ -39,9 +119,24 @@ def generate_medical_response(
     if not question or not question.strip():
         return "Please enter a medical question."
     
+    # Check if question is in medical domain
+    if enforce_domain:
+        is_medical, reason = is_medical_question(question)
+        if not is_medical:
+            return f"I apologize, but I can only answer questions related to medical and healthcare topics. {reason}\n\nPlease ask me about medical conditions, treatments, anatomy, medications, or other health-related topics."
+    
     try:
-        # Create prompt
-        prompt = create_prompt_template(question)
+        # Enhanced system message with domain boundaries
+        system_message = (
+            "You are a specialized medical healthcare assistant. "
+            "Your expertise is strictly limited to medical, healthcare, anatomy, physiology, "
+            "diseases, treatments, medications, and related health topics. "
+            "Provide accurate, detailed medical information. "
+            "If asked about non-medical topics, politely decline and remind the user of your medical specialization."
+        )
+        
+        # Create prompt with enhanced system message
+        prompt = create_prompt_template(question, system_message=system_message)
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
         
         # Generate response
@@ -179,12 +274,15 @@ def create_gradio_interface(
             lines=10
         ),
         examples=examples,
-        title="🏥 Medical Healthcare Assistant",
+        title="Medical Healthcare Assistant",
         description="""
-        This is a fine-tuned AI medical assistant based on TinyLlama-1.1B with LoRA.
-        Ask medical questions and receive informed responses.
+        A fine-tuned AI medical assistant based on TinyLlama-1.1B with LoRA.
+        Ask medical and healthcare questions to receive informed responses.
         
-        **⚠️ Disclaimer**: This assistant is for educational purposes only. 
+        **Note**: This assistant is specialized for medical topics only. 
+        Questions about politics, religion, mathematics, or other non-medical subjects will be politely declined.
+        
+        **Disclaimer**: This assistant is for educational purposes only. 
         Always consult qualified healthcare professionals for medical advice.
         """,
         article="""
@@ -193,6 +291,7 @@ def create_gradio_interface(
         - **Fine-tuning**: LoRA with 4-bit quantization
         - **Dataset**: Medical Meadow Medical Flashcards (5,000 samples)
         - **Training**: 3 epochs on medical Q&A data
+        - **Domain**: Strictly limited to medical and healthcare topics
         
         ### Performance Metrics
         - BLEU Score: 0.178 (+242% improvement)
@@ -277,7 +376,7 @@ def create_comparison_interface(
             gr.Textbox(label="🟩 Fine-Tuned Model Response", lines=8)
         ],
         examples=examples,
-        title="🔄 Model Comparison: Base vs Fine-Tuned",
+        title="Model Comparison: Base vs Fine-Tuned",
         description="""
         Compare responses from the base pre-trained model and the fine-tuned medical assistant.
         

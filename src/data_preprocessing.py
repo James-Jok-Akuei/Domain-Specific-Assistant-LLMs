@@ -36,7 +36,7 @@ def create_prompt_template(
     system_message: Optional[str] = None
 ) -> str:
     """
-    Create a formatted prompt following TinyLlama chat template.
+    Create a formatted prompt following TinyLlama chat template with domain boundaries.
     
     Args:
         instruction: The user's question or instruction
@@ -47,7 +47,13 @@ def create_prompt_template(
         Formatted prompt string
     """
     if system_message is None:
-        system_message = "You are a knowledgeable medical assistant. Provide accurate, detailed, and helpful medical information."
+        system_message = (
+            "You are a specialized medical healthcare assistant. "
+            "Your expertise is strictly limited to medical, healthcare, anatomy, physiology, "
+            "diseases, treatments, medications, and related health topics. "
+            "Provide accurate, detailed medical information. "
+            "If asked about non-medical topics, politely decline and remind the user of your medical specialization."
+        )
     
     if response:
         prompt = f"<|system|>\n{system_message}</s>\n<|user|>\n{instruction}</s>\n<|assistant|>\n{response}</s>"
