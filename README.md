@@ -1,6 +1,6 @@
 # Medical Healthcare Assistant - LLM Fine-Tuning Project
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YOUR_USERNAME/Domain-Specific-Assistant-LLMs/blob/main/notebook.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/James-Jok-Akuei/Domain-Specific-Assistant-LLMs/blob/main/notebook.ipynb)
 
 ## 🏥 Project Overview
 
