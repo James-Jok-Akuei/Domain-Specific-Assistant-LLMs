@@ -6,6 +6,14 @@
 
 This project implements a **domain-specific medical assistant** by fine-tuning TinyLlama-1.1B using LoRA (Low-Rank Adaptation) on medical question-answer pairs. The assistant can answer healthcare-related queries with improved accuracy and relevance compared to the base pre-trained model.
 
+### Key Features
+
+- **Domain Restriction**: Intelligent filtering ensures the model only answers medical/healthcare questions, politely declining non-medical topics (politics, mathematics, entertainment, etc.)
+- **Text-Based Progress Bars**: Compatible with VS Code, GitHub, and Colab - no widget rendering issues
+- **Enhanced System Prompts**: Model instructed with clear domain boundaries for better response quality
+- **Parameter-Efficient Training**: LoRA with 4-bit quantization (~0.8% trainable parameters)
+- **Production-Ready**: Clean, professional output suitable for deployment
+
 ### Why Medical Domain?
 
 - **High Impact**: Healthcare assistance can improve access to medical information
@@ -136,14 +144,48 @@ Multiple experiments were conducted to optimize performance:
 
 ## 💻 Deployment
 
+### Domain Restriction & Safety
+
+The assistant implements **two-layer domain enforcement** to ensure responses stay within medical/healthcare topics:
+
+**Layer 1: Keyword-Based Filter**
+- Pre-generation filtering checks question content
+- 70+ medical keywords (anatomy, diseases, treatments, medications)
+- 30+ non-medical topics explicitly rejected (politics, religion, math, sports, etc.)
+- Fast rejection without model computation
+
+**Layer 2: Enhanced System Prompt**
+- Model instructed about domain boundaries during generation
+- Reinforces medical specialization in responses
+- Backup for edge cases missed by keyword filter
+
+**Example Behavior**:
+```python
+# Medical Question (ACCEPTED)
+Q: "What are the side effects of beta blockers?"
+→ Detailed medical response generated
+
+# Non-Medical Question (REJECTED)
+Q: "Who is the president of the United States?"
+→ "I apologize, but I can only answer questions related to medical 
+   and healthcare topics. This question appears to be about politics..."
+```
+
 ### Gradio Web Interface
 
 The model is deployed with an intuitive Gradio interface featuring:
-- Text input for medical queries
+- Text input for medical queries with domain validation
 - Real-time response generation
 - Comparison mode (base vs fine-tuned)
 - Example queries for quick testing
 - Clear disclaimer about medical advice
+- Adjustable generation parameters (temperature, length, top-p)
+
+### Compatibility Features
+
+- **Text-Based Progress Bars**: Displays properly in VS Code, GitHub, and Colab
+- **No Widget Dependencies**: Avoids Jupyter widget rendering issues
+- **Cross-Platform**: Works seamlessly across different environments
 
 ### Running the Interface
 
@@ -209,6 +251,18 @@ jupyter notebook notebook.ipynb
 
 **Fine-Tuned Model**: "Metformin is the first-line pharmacological treatment for type 2 diabetes mellitus, combined with lifestyle modifications (diet and exercise). It reduces hepatic glucose production, improves insulin sensitivity, and has cardiovascular benefits. Contraindications include severe renal impairment (eGFR <30 mL/min/1.73m²) and metabolic acidosis. Starting dose is typically 500mg once or twice daily, titrated based on glycemic control and tolerability."
 
+---
+
+### Example 4: Domain Restriction (Non-Medical Question)
+
+**User**: "Who won the 2024 presidential election?"
+
+**Fine-Tuned Model (with Domain Enforcement)**: "I apologize, but I can only answer questions related to medical and healthcare topics. This question appears to be about politics, which is outside my medical domain.
+
+Please ask me about medical conditions, treatments, anatomy, medications, or other health-related topics."
+
+**Why This Matters**: The domain restriction ensures the model stays focused on its area of expertise, preventing misinformation in non-medical domains and maintaining the assistant's specialized purpose.
+
 ## 🛠️ Technical Stack
 
 - **Python 3.10+**
@@ -232,12 +286,19 @@ Domain-Specific-Assistant-LLMs/
 │   ├── data_preprocessing.py         # Data loading and preprocessing utilities
 │   ├── model_training.py             # Training loop and LoRA configuration
 │   ├── evaluation.py                 # Evaluation metrics implementation
-│   └── inference.py                  # Inference and Gradio UI
+│   └── inference.py                  # Inference, domain filtering, and Gradio UI
 ├── experiments/
 │   └── experiment_log.md             # Detailed hyperparameter experiments
 └── examples/
     └── sample_conversations.txt      # Example Q&A pairs
 ```
+
+### Key Features in Code
+
+- **Domain Classification** (`src/inference.py`): `is_medical_question()` function with comprehensive keyword lists
+- **Enhanced Prompts** (`src/data_preprocessing.py`): System messages with domain boundaries
+- **Text-Based Progress** (`notebook.ipynb`): tqdm configuration for cross-platform compatibility
+- **Dual Enforcement**: Pre-generation filtering + in-prompt instructions
 
 ## 📊 Experiment Tracking
 
