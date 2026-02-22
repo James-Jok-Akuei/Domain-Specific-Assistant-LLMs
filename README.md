@@ -4,6 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Hugging Face](https://img.shields.io/badge/🤗-Hugging%20Face-orange)](https://huggingface.co/)
+[![View Notebook](https://img.shields.io/badge/📓-View%20Notebook%20with%20Widgets-green)](https://drive.google.com/file/d/14oacwmFDj52yhTyLBCDFRXMgyoXqbP3m/view?usp=sharing)
 
 > **A domain-specific medical assistant built by fine-tuning TinyLlama-1.1B with LoRA, achieving 242% improvement in BLEU score with strict medical domain enforcement.**
 
